@@ -5,7 +5,7 @@ TODO:
   rain of stones 
 */
 config = {
-  motor_noise: 0.01,
+  motor_noise: 0.005,
   time_step: 60,
   simulation_fps: 60,
   draw_fps: 60,
@@ -18,7 +18,6 @@ config = {
   mutation_chance: 0.05,
   mutation_amount: 0.5,
   walker_health: 3000,
-  fitness_criterium: 'score',
   check_health: true,
   elite_clones: 2,
   max_floor_tiles: 50,
@@ -27,7 +26,7 @@ config = {
   min_leg_delta: 0.4,
   instadeath_delta: 0.4,
   lazer_set: true,
-  lazer_speed: 0.0005,
+  lazer_speed: 0.00025,
 };
 
 globals = {};
@@ -49,13 +48,13 @@ gameInit = function() {
 simulationStep = function() {
   globals.world.Step(1/config.time_step, config.velocity_iterations, config.position_iterations);
   globals.world.ClearForces();
-  globals.lazer_x += config.lazer_speed * Math.pow(globals.step_counter, 0.618);
   populationSimulationStep();
   if(typeof globals.step_counter == 'undefined') {
     globals.step_counter = 0;
   } else {
     globals.step_counter++;
   }
+  globals.lazer_x += config.lazer_speed * Math.pow(globals.step_counter, 0.618);
   document.getElementById("generation_timer_bar").style.width = (100*globals.step_counter/config.round_length)+"%";
   if(globals.step_counter > config.round_length) {
     nextGeneration();
@@ -104,7 +103,7 @@ createPopulation = function(genomes) {
   return walkers;
 }
 
-populationSimulationStep = function() {
+populationSimulationStep = function() {//snapshot every 10 health points
   var dead_dudes = 0;
   for(var k = 0; k < config.population_size; k++) {
     if(globals.walkers[k].health > 0) {
@@ -155,16 +154,16 @@ killGeneration = function() {
   }
 }
 
-createNewGenerationGenomes = function() {
+createNewGenerationGenomes = function() {//add NSGA-II
   globals.walkers.sort(function(a,b) {
-    return b[config.fitness_criterium] - a[config.fitness_criterium];
+    return b.score - a.score;
   });
   if(typeof globals.last_record == 'undefined') {
     globals.last_record = 0;
   }
-  if(globals.walkers[0][config.fitness_criterium] > globals.last_record) {
+  if(globals.walkers[0].score > globals.last_record) {
     printChampion(globals.walkers[0]);
-    globals.last_record = globals.walkers[0][config.fitness_criterium];
+    globals.last_record = globals.walkers[0].score;
   }
 
   var genomes = [];
@@ -205,7 +204,8 @@ mutate_num = function(x){
 copulate = function(walker_1, walker_2) {
   var new_genome = [];
   for(var k = 0; k < walker_1.genome.length; k++) {
-    if(Math.random() < walker_1.score / (walker_1.score + walker_2.score)) {
+    // if(Math.random() < 0.5) {
+    if(Math.random() < walker_1.score / (walker_1.score + walker_2.score)) {      //temporary hack for no good choosing
       var parent = walker_1;
     } else {
       var parent = walker_2;
@@ -219,27 +219,6 @@ copulate = function(walker_1, walker_2) {
     new_genome[k] = new_gene;
   }
   return new_genome;
-}
-
-mutateClones = function(genomes) {
-  if(parseFloat(config.mutation_chance) == 0) {
-    return genomes;
-  }
-
-  for(var k = 0; k < genomes.length; k++) {
-    var current = JSON.stringify(genomes[k]);
-    for(var l = k + 1; l < genomes.length; l++) {
-      if(current == JSON.stringify(genomes[l])) {
-        var to_mutate = Math.floor(Math.random() * genomes[l].length);
-        genomes[l][to_mutate].xweight = mutate_num(genomes[l][to_mutate].xweight);
-        genomes[l][to_mutate].yweight = mutate_num(genomes[l][to_mutate].yweight);
-        for(var i = 0; i < walker_1.genome.length; i++){
-          genomes[l][to_mutate].weight[i] = mutate_num(genomes[l][to_mutate].weight[i]);
-        }
-      }
-    }
-  }
-  return genomes;
 }
 
 getInterfaceValues = function() {

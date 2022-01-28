@@ -377,8 +377,8 @@ Walker.prototype.simulationStep = function(motor_noise) {
     // var phase = (1 + motor_noise*(Math.random()*2 - 1)) * this.genome[k].time_shift;
     // var freq = (1 + motor_noise*(Math.random()*2 - 1)) * this.genome[k].time_factor;
     new_activation[k] = 0;
-    new_activation[k] += this.genome[k].xweight * Math.sin(this.joints[k].xbody.GetAngle());
-    new_activation[k] += this.genome[k].yweight * Math.sin(this.joints[k].ybody.GetAngle());
+    new_activation[k] += this.genome[k].xweight * (1-Math.sin(this.joints[k].xbody.GetAngle()));
+    new_activation[k] += this.genome[k].yweight * (1-Math.sin(this.joints[k].ybody.GetAngle()));
     for(var i = 0 ; i < this.joints.length; i++){
       if(i==k) new_activation[k] += this.genome[k].weight[i];
       else new_activation[k] += this.activation[i] * this.genome[k].weight[i];

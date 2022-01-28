@@ -24,7 +24,7 @@ printNames = function(walkers) {
 
     td = document.createElement("TD");
     td.className = "score";
-    td.appendChild(document.createTextNode(walkers[k][config.fitness_criterium].toFixed(2)));
+    td.appendChild(document.createTextNode(walkers[k].score.toFixed(2)));
     tr.appendChild(td);
     name_list.appendChild(tr);
   }
@@ -51,7 +51,7 @@ printChampion = function(walker) {
 
   td = document.createElement("TD");
   td.className = "score";
-  td.appendChild(document.createTextNode(walker[config.fitness_criterium].toFixed(2)));
+  td.appendChild(document.createTextNode(walker.score.toFixed(2)));
   tr.appendChild(td);
 
   champ_list.appendChild(tr);

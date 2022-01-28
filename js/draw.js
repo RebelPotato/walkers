@@ -22,9 +22,9 @@ setFps = function(fps) {
 drawFrame = function() {
   var minmax = getMinMaxDistance();
   globals.target_zoom = Math.min(config.max_zoom_factor, getZoom(minmax.min_x, minmax.max_x + 4, minmax.min_y + 2, minmax.max_y + 2.5));
-  globals.zoom += 0.1*(globals.target_zoom - globals.zoom);
-  globals.translate_x += 0.1*(1.5-minmax.min_x - globals.translate_x);
-  globals.translate_y += 0.3*(minmax.min_y*globals.zoom + 280 - globals.translate_y);
+  globals.zoom += 0.07*(globals.target_zoom - globals.zoom);
+  globals.translate_x += 0.07*(1.5-minmax.min_x - globals.translate_x);
+  globals.translate_y += 0.2*(minmax.min_y*globals.zoom + 280 - globals.translate_y);
   //globals.translate_y = minmax.max_y*globals.zoom + 150;
   globals.ctx.clearRect(0, 0, globals.main_screen.width, globals.main_screen.height);
   globals.ctx.save();
