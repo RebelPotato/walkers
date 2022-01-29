@@ -1,6 +1,5 @@
 /*
-TODO:
-  more criteria 
+TODO: 
   novelty search
   rain of stones 
 */
@@ -14,12 +13,12 @@ config = {
   max_zoom_factor: 130,
   min_motor_speed: -2,
   max_motor_speed: 2,
-  population_size: 25,
+  population_size: 20,
   mutation_chance: 0.05,
-  mutation_amount: 0.5,
+  mutation_amount: 0.1,
   walker_health: 3000,
   check_health: true,
-  elite_clones: 2,
+  elite_clones: 1,
   max_floor_tiles: 50,
   round_length: 50000,
   min_body_delta: 1.4,
@@ -27,6 +26,7 @@ config = {
   instadeath_delta: 0.4,
   lazer_set: true,
   lazer_speed: 0.00025,
+  elite_rate: 0.382
 };
 
 globals = {};
@@ -94,11 +94,12 @@ createPopulation = function(genomes) {
     } else {
       walkers.push(new Walker(globals.world));
     }
-    if(globals.generation_count > 0 && k < config.elite_clones) {
-      walkers[walkers.length - 1].is_elite = true;
-    } else {
-      walkers[walkers.length - 1].is_elite = false;
-    }
+    //No more elites!
+    // if(globals.generation_count > 0 && k < config.elite_clones) {
+    //   walkers[walkers.length - 1].is_elite = true;
+    // } else {
+       walkers[walkers.length - 1].is_elite = false;
+    // }
   }
   return walkers;
 }
@@ -154,7 +155,28 @@ killGeneration = function() {
   }
 }
 
-createNewGenerationGenomes = function() {//add NSGA-II
+compareWalker = function(a,b) {
+  var x = 0;
+  if(a.behavior[a.behavior.length-1].distance < b.behavior[b.behavior.length-1].distance){
+    if(x == -1) return 0;
+    x = 1;
+  }
+  if(a.behavior[a.behavior.length-1].distance > b.behavior[b.behavior.length-1].distance){
+    if(x == 1) return 0;
+    x = -1;
+  }
+  if(a.score < b.score){
+    if(x == -1) return 0;
+    x = 1;
+  }
+  if(a.score > b.score){
+    if(x == 1) return 0;
+    x = -1;
+  }
+  return x;
+}
+
+createNewGenerationGenomes = function() {
   globals.walkers.sort(function(a,b) {
     return b.score - a.score;
   });
@@ -165,19 +187,78 @@ createNewGenerationGenomes = function() {//add NSGA-II
     printChampion(globals.walkers[0]);
     globals.last_record = globals.walkers[0].score;
   }
-
   var genomes = [];
-  var parents = null;
-  // clones
-  for(var k = 0; k < config.elite_clones; k++) {
-    genomes.push(globals.walkers[k].genome);
+  var dist = [];    //later used for novelty search
+  var dom_map = [];   //a map of the dominance
+  var dom_num = [];   //the number of dominant parents
+  for(var i = 0; i < config.population_size; i++){
+    dom_map[i] = [];
+    dom_num[i] = 0;
   }
-  for(var k = config.elite_clones; k < config.population_size; k++) {
-    if(parents = pickParents()) {
-      genomes.push(copulate(globals.walkers[parents[0]], globals.walkers[parents[1]]));
+  for(var i = 0; i < config.population_size; i++){
+    for(var j = i + 1; j < config.population_size; j++){
+      var k = compareWalker(globals.walkers[i], globals.walkers[j]);
+      // if(k!=0) console.log("Yes!");
+      if(k==-1) dom_map[i].push(j), dom_num[j]++;
+      if(k==1) dom_map[j].push(i), dom_num[i]++;
     }
   }
-//  genomes = mutateClones(genomes);
+  var dom_queue = [];   //queue, for the BFS
+  var layer_num = [];   //number of layers for every walker
+  var processed_layer = 0;    //the id of the layer being processed
+  var tmp_walkers = [];    //the walkers of the layer
+  var tmp_all_walkers = [];   //all the walkers of the previous round
+  for(var i = 0; i < config.population_size; i++){
+    if(dom_num[i] == 0) dom_queue.push(i);
+    layer_num[i] = 0;
+  }
+  while(1){
+    var walker_head = dom_queue.shift();
+    console.log(walker_head);
+    if(typeof walker_head == 'undefined' || layer_num[walker_head] > processed_layer){//deal with the undef problem later
+      //now begins the insertion of the last layer into the genome
+      if(typeof walker_head == 'undefined') break;
+      console.log("Current layer: "+processed_layer);
+      var num_res = Math.ceil((config.population_size - genomes.length) * config.elite_rate);
+      console.log("It has "+num_res+" remaining");
+      for(var k = 0; k < config.elite_clones; k++){
+        if(num_res >= tmp_walkers.length){
+          for(var i = 0; i < tmp_walkers.length; i++){
+            genomes.push(copulate(tmp_walkers[i],tmp_walkers[i]));
+          }
+          num_res -= tmp_walkers.length;
+        }
+        else break;
+      }
+      while(num_res > 0){
+        var i = Math.floor(Math.random() * tmp_all_walkers.length);
+        var j = Math.floor(Math.random() * tmp_all_walkers.length);
+        genomes.push(copulate(tmp_all_walkers[i],tmp_all_walkers[j]));
+        num_res--;
+      }
+      tmp_walkers = [];
+      processed_layer++;
+      if(config.population_size == genomes.length) break;
+    }
+    tmp_walkers.push(globals.walkers[walker_head]);
+    tmp_all_walkers.push(globals.walkers[walker_head]);
+    while(dom_map[walker_head].length > 0){
+      var j = dom_map[walker_head].pop();
+      dom_num[j]--;
+      layer_num[j] = Math.max(layer_num[j], layer_num[walker_head] + 1);
+      if(dom_num[j] == 0) dom_queue.push(j);
+    }
+  }
+//   // clones
+//   for(var k = 0; k < config.elite_clones; k++) {
+//     genomes.push(globals.walkers[k].genome);
+//   }
+//   for(var k = config.elite_clones; k < config.population_size; k++) {
+//     if(parents = pickParents()) {
+//       genomes.push(copulate(globals.walkers[parents[0]], globals.walkers[parents[1]]));
+//     }
+//   }
+// //  genomes = mutateClones(genomes);
   return genomes;
 }
 
@@ -204,8 +285,8 @@ mutate_num = function(x){
 copulate = function(walker_1, walker_2) {
   var new_genome = [];
   for(var k = 0; k < walker_1.genome.length; k++) {
-    // if(Math.random() < 0.5) {
-    if(Math.random() < walker_1.score / (walker_1.score + walker_2.score)) {      //temporary hack for no good choosing
+    if(Math.random() < 0.5) {
+    // if(Math.random() < walker_1.score / (walker_1.score + walker_2.score)) {      //temporary hack for no good choosing
       var parent = walker_1;
     } else {
       var parent = walker_2;

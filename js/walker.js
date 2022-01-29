@@ -78,6 +78,8 @@ Walker.prototype.__constructor = function(world, genome) {
   for(var i=0; i < this.joints.length; i++){
     this.activation[i] = 0;
   }
+  this.behavior = [];
+  this.last_snap = config.walker_health + 100;
 
   if(genome) {
     this.genome = JSON.parse(JSON.stringify(genome));
@@ -428,6 +430,14 @@ Walker.prototype.simulationStep = function(motor_noise) {
     this.health -= 15;
   }
 
+  if(this.health <= this.last_snap - 10){
+    this.last_snap = this.health;
+    this.behavior.push({
+      health: this.health,
+      angles: [this.head.head.GetAngle(),this.head.neck.GetAngle(),this.torso.upper_torso.GetAngle(),this.torso.lower_torso.GetAngle(),this.left_arm.upper_arm.GetAngle(),this.left_arm.lower_arm.GetAngle(),this.right_arm.upper_arm.GetAngle(),this.right_arm.lower_arm.GetAngle(),this.left_leg.upper_leg.GetAngle(),this.left_leg.lower_leg.GetAngle(),this.left_leg.foot.GetAngle(),this.right_leg.upper_leg.GetAngle(),this.right_leg.lower_leg.GetAngle(),this.right_leg.foot.GetAngle()],
+      distance: Math.min(this.head.head.GetPosition().x,this.left_leg.foot.GetPosition().x,this.right_leg.foot.GetPosition().x)
+    });
+  }
   return;
 }
 
