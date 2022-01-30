@@ -79,7 +79,12 @@ Walker.prototype.__constructor = function(world, genome) {
     this.activation[i] = 0;
   }
   this.behavior = [];
-  this.last_snap = config.walker_health + 100;
+  this.last_snap = config.walker_health;
+  this.behavior.push({
+    health: this.health,
+    angles: [this.head.head.GetAngle(),this.head.neck.GetAngle(),this.torso.upper_torso.GetAngle(),this.torso.lower_torso.GetAngle(),this.left_arm.upper_arm.GetAngle(),this.left_arm.lower_arm.GetAngle(),this.right_arm.upper_arm.GetAngle(),this.right_arm.lower_arm.GetAngle(),this.left_leg.upper_leg.GetAngle(),this.left_leg.lower_leg.GetAngle(),this.left_leg.foot.GetAngle(),this.right_leg.upper_leg.GetAngle(),this.right_leg.lower_leg.GetAngle(),this.right_leg.foot.GetAngle()],
+    distance: Math.min(this.head.head.GetPosition().x,this.left_leg.foot.GetPosition().x,this.right_leg.foot.GetPosition().x)
+  });
 
   if(genome) {
     this.genome = JSON.parse(JSON.stringify(genome));
@@ -379,8 +384,8 @@ Walker.prototype.simulationStep = function(motor_noise) {
     // var phase = (1 + motor_noise*(Math.random()*2 - 1)) * this.genome[k].time_shift;
     // var freq = (1 + motor_noise*(Math.random()*2 - 1)) * this.genome[k].time_factor;
     new_activation[k] = 0;
-    new_activation[k] += this.genome[k].xweight * (1-Math.sin(this.joints[k].xbody.GetAngle()));
-    new_activation[k] += this.genome[k].yweight * (1-Math.sin(this.joints[k].ybody.GetAngle()));
+    new_activation[k] += this.genome[k].xweight * (this.joints[k].xbody.GetAngle());
+    new_activation[k] += this.genome[k].yweight * (this.joints[k].ybody.GetAngle());
     for(var i = 0 ; i < this.joints.length; i++){
       if(i==k) new_activation[k] += this.genome[k].weight[i];
       else new_activation[k] += this.activation[i] * this.genome[k].weight[i];
@@ -426,11 +431,11 @@ Walker.prototype.simulationStep = function(motor_noise) {
     }
   }
 
-  if(this.head.head.GetPosition().x<globals.lazer_x) {
+  if(Math.min(this.head.head.GetPosition().x,this.left_leg.foot.GetPosition().x,this.right_leg.foot.GetPosition().x) < globals.lazer_x) {
     this.health -= 15;
   }
 
-  if(this.health <= this.last_snap - 10){
+  if(this.health <= this.last_snap - config.snap_shot_time){
     this.last_snap = this.health;
     this.behavior.push({
       health: this.health,

@@ -26,7 +26,8 @@ config = {
   instadeath_delta: 0.4,
   lazer_set: true,
   lazer_speed: 0.00025,
-  elite_rate: 0.382
+  elite_rate: 0.382,
+  snap_shot_time: 10
 };
 
 globals = {};
@@ -188,7 +189,7 @@ createNewGenerationGenomes = function() {
     globals.last_record = globals.walkers[0].score;
   }
   var genomes = [];
-  var dist = [];    //later used for novelty search
+  var dist = [];    //used for novelty search
   var dom_map = [];   //a map of the dominance
   var dom_num = [];   //the number of dominant parents
   for(var i = 0; i < config.population_size; i++){
@@ -214,13 +215,13 @@ createNewGenerationGenomes = function() {
   }
   while(1){
     var walker_head = dom_queue.shift();
-    console.log(walker_head);
+    // console.log(walker_head);
     if(typeof walker_head == 'undefined' || layer_num[walker_head] > processed_layer){//deal with the undef problem later
       //now begins the insertion of the last layer into the genome
       if(typeof walker_head == 'undefined') break;
-      console.log("Current layer: "+processed_layer);
+      // console.log("Current layer: "+processed_layer);
       var num_res = Math.ceil((config.population_size - genomes.length) * config.elite_rate);
-      console.log("It has "+num_res+" remaining");
+      // console.log("It has "+num_res+" remaining");
       for(var k = 0; k < config.elite_clones; k++){
         if(num_res >= tmp_walkers.length){
           for(var i = 0; i < tmp_walkers.length; i++){
@@ -260,6 +261,29 @@ createNewGenerationGenomes = function() {
 //   }
 // //  genomes = mutateClones(genomes);
   return genomes;
+}
+
+walker_distance = function (a,b){
+  var i = 0, j = 0;
+  var sum = 0;
+  for(var k = config.walker_health; k >= 0; k -= config.snap_shot_time){
+    while(a.behavior[i].health >= k && i != a.behavior.length) i++;
+    i--;
+    while(b.behavior[j].health >= k && j != b.behavior.length) j++;
+    j--;
+    var ang_a = a.behavior[i].angles;
+    if(i != a.behavior.length - 1){
+      for(var p = 0; p < ang_a.length; p++){
+        ang_a[p] = ang_a[p] * (k - a.behavior[i+1].health) / (a.behavior[i].health - a.behavior[i+1].health) + a.behavior[i+1].angles[p] * (a.behavior[i].health - k) / (a.behavior[i].health - a.behavior[i+1].health);
+      }
+    }
+    var ang_b = b.behavior[j].angles; 
+    if(j != b.behavior.length - 1){
+      for(var p = 0; p < ang_b.length; p++){
+        ang_b[p] = ang_b[p] * (k - b.behavior[j+1].health) / (b.behavior[j].health - b.behavior[j+1].health) + b.behavior[j+1].angles[p] * (b.behavior[j].health - k) / (b.behavior[j].health - b.behavior[j+1].health);
+      }
+    }
+  }
 }
 
 pickParents = function() {
