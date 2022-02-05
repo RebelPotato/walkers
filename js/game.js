@@ -157,19 +157,27 @@ killGeneration = function() {
 
 compareWalker = function(a,b) {
   var x = 0;
-  if(a.behavior[a.behavior.length-1].distance < b.behavior[b.behavior.length-1].distance){
+  if(a.rel_dis < b.rel_dis){
     if(x == -1) return 0;
     x = 1;
   }
-  if(a.behavior[a.behavior.length-1].distance > b.behavior[b.behavior.length-1].distance){
+  if(a.rel_dis > b.rel_dis){
     if(x == 1) return 0;
     x = -1;
   }
-  if(a.score < b.score){
+  if(a.rel_score < b.rel_score){
     if(x == -1) return 0;
     x = 1;
   }
-  if(a.score > b.score){
+  if(a.rel_score > b.rel_score){
+    if(x == 1) return 0;
+    x = -1;
+  }
+  if(a.dsum < b.dsum){//dsum is bigger better
+    if(x == -1) return 0;
+    x = 1;
+  }
+  if(a.dsum > b.dsum){
     if(x == 1) return 0;
     x = -1;
   }
@@ -198,8 +206,27 @@ createNewGenerationGenomes = function() {
     }
   }
   for(var i = 0; i < config.population_size; i++){
+    var lst = [];
+    var replace;
     for(var j = 0; j < config.population_size; j++){
-      if(i == j) continue;
+      if(i == j) continue;  //add the relative distance here
+      replace = j;
+      for(var k = 0; k < lst.length; k++){
+        if(dist[i][replace] < dist[i][lst[k]]) {
+          var tmp = lst[k];
+          lst[k] = replace;
+          replace = tmp;
+        }
+      }
+      if(lst.length < config.niche_size) lst.push(replace);
+    }
+    globals.walkers[i].dsum = 0;
+    globals.walkers[i].rel_score = config.niche_size * globals.walkers[i].score;
+    globals.walkers[i].rel_dis = config.niche_size * globals.walkers[i].behavior[globals.walkers[i].behavior.length-1].distance;
+    for(var j = 0; j < config.niche_size; j++){
+      globals.walkers[i].dsum += dist[i][lst[j]];
+      globals.walkers[i].rel_score -=globals.walkers[lst[j]].score;
+      globals.walkers[i].rel_dis -= globals.walkers[lst[j]].behavior[globals.walkers[lst[j]].behavior.length-1].distance;
     }
   }
   var dom_map = [];   //a map of the dominance
