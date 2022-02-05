@@ -26,7 +26,8 @@ config = {
   instadeath_delta: 0.4,
   lazer_set: true,
   lazer_speed: 0.00025,
-  snap_shot_time: 10
+  snap_shot_time: 10,
+  niche_size: 5
 };
 
 globals = {};
@@ -189,7 +190,17 @@ createNewGenerationGenomes = function() {
   var genomes = [];
   var dist = [];    //used for novelty search
   for(var i = 0; i < config.population_size; i++){
-    ;
+    dist[i] = [];
+  }
+  for(var i = 0; i < config.population_size; i++){
+    for(var j = i+1; j < config.population_size; j++){
+      dist[i][j] = dist[j][i] = walker_distance(globals.walkers[i],globals.walkers[j]);
+    }
+  }
+  for(var i = 0; i < config.population_size; i++){
+    for(var j = 0; j < config.population_size; j++){
+      if(i == j) continue;
+    }
   }
   var dom_map = [];   //a map of the dominance
   var dom_num = [];   //the number of dominant parents
@@ -257,12 +268,13 @@ createNewGenerationGenomes = function() {
 }
 
 walker_distance = function (a,b){
+  // console.log(a.name + " - "+b.name);
   var i = 0, j = 0;
   var sum = 0 , num = 0;
   for(var k = config.walker_health; k >= 0; k -= config.snap_shot_time){
-    while(a.behavior[i].health >= k && i != a.behavior.length) i++;
+    while(i != a.behavior.length && a.behavior[i].health >= k) i++;
     i--;
-    while(b.behavior[j].health >= k && j != b.behavior.length) j++;
+    while(j != b.behavior.length && b.behavior[j].health >= k) j++;
     j--;
     var ang_a = a.behavior[i].angles;
     if(i != a.behavior.length - 1){
